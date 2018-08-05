@@ -1,2 +1,2 @@
 #Progressive Web App
-##Listing github users from API
+##Listing github users using API
