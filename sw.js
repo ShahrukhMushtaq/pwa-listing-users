@@ -1,4 +1,5 @@
-var cacheName = "app-cache-2";
+var staticCache = "app-cache-2";
+var dynamicCache = "app-dyn-2";
 var filesToAdd = [
     '/index.html',
     '/app.js',
@@ -7,7 +8,7 @@ var filesToAdd = [
 self.addEventListener('install', function (e) {
     console.log("Service Worker installed succesfully");
     e.waitUntil(
-        caches.open(cacheName).then(function (cache) {
+        caches.open(staticCache).then(function (cache) {
             console.log("Service Worker caches succesfully");
             return cache.addAll(filesToAdd);
         })
@@ -19,7 +20,7 @@ self.addEventListener('activate', function(e) {
     e.waitUntil(
       caches.keys().then(function(keyList) {
         return Promise.all(keyList.map(function(key) {
-          if (key !== cacheName) {
+          if (key !== staticCache) {
             console.log('[ServiceWorker] Removing old cache', key);
             return caches.delete(key);
           }
@@ -30,8 +31,17 @@ self.addEventListener('activate', function(e) {
   });
 
 self.addEventListener('fetch', function (e) {
-    e.respondWith(caches.match(e.request).then(function(cache){
-        
-        return cache || fetch(e.request);
-    }));
+    if (e.request.url.startsWith('https://api.github.com/users')) {
+        caches.open(dynamicCache).then(function(cache){
+            return fetch(e.request).then(function(res){
+                cache.put(e.request , res.clone());
+                return res;
+            })
+        })
+    }
+    else{
+        e.respondWith(caches.match(e.request).then(function(res){
+            return res || fetch(e.request);
+        }));
+    }
 });
